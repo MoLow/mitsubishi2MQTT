@@ -15,10 +15,74 @@
 */
  
 const char html_menu_root[] PROGMEM = R"====(
-<div id="control" style="display:none">
-    <form action='/control' method='get'>
-        <button>Control</button>
-    </form>
+<style>
+    #control div {
+        padding: 0;
+        text-align: center;
+    }
+    #control div [data-options] {
+        margin: 10px 0;
+    }
+    #control .button {
+        color: transparent;  
+        text-shadow: 0 0 0 #eaeaea;
+        width: 38px;
+        border-radius: 50%;
+    }
+</style>
+<div id="control" data-if="connected" style="display:none">
+    <div>
+        <h1>
+            <span class="button" onclick="st(1)">+</span>
+            <span id="temperture"></span>
+            <span class="button" onclick="st(-1)">-</span>
+        </h1>
+        <h3>room temperture: <span id="room_temperture"></span></h3>
+    </div>
+    <div data-if="power">
+        <div data-options="mode">
+            <h3>Mode</h3>
+            <span class="button bred" onclick="la('POWER=OFF')" title="off">&#128268;</span>
+            <span class="button" data-selected='AUTO' onclick="la('MODE=AUTO')" title="auto">&#9851;</span>
+            <span class="button" data-selected='DRY' onclick="la('MODE=DRY')" title="dry">&#128167;</span>
+            <span class="button" data-selected='COOL' onclick="la('MODE=COOL')" title="cool">&#10052;&#65039;</span>
+            <span class="button" data-selected='HEAT' data-if="support_heat_mode" onclick="la('MODE=HEAT')" title="heat">&#9728;&#65039;</span>
+            <span class="button" data-selected='FAN' onclick="la('MODE=FAN')" title="fan">&#10051;</span>
+        </div>
+        <div data-options="fan">
+            <h3>Fan Speed</h3>
+            <span class="button" data-selected='AUTO' onclick="la('FAN=AUTO')" title="auto">&#9851;</span>
+            <span class="button" data-selected='QUIET' onclick="la('FAN=QUIET')" title="quiet">....</span>
+            <span class="button" data-selected='1' onclick="la('FAN=1')" title="1">...|</span>
+            <span class="button" data-selected='2' onclick="la('FAN=2')" title="2">..::</span>
+            <span class="button" data-selected='3' onclick="la('FAN=3')" title="3">.:::</span>
+            <span class="button" data-selected='4' onclick="la('FAN=4')" title="4">::::</span>
+        </div>
+        <div data-options="vane">
+            <h3>Vane</h3>
+            <span class="button" data-selected='AUTO' onclick="la('VANE=AUTO')" title="auto">&#9851;</span>
+            <span class="button" data-selected='SWING' onclick="la('VANE=SWING')" title="swing">&#9887;</span>
+            <span class="button" data-selected='1' onclick="la('VANE=1')" title="1">&#10143;</span>
+            <span class="button" data-selected='2' onclick="la('VANE=2')" title="2">&#10143;</span>
+            <span class="button" data-selected='3' onclick="la('VANE=3')" title="3">&#10143;</span>
+            <span class="button" data-selected='4' onclick="la('VANE=4')" title="4">&#10143;</span>
+            <span class="button" data-selected='5' onclick="la('VANE=5')" title="5">&#10143;</span>         
+        </div>
+        <div data-options="wide_vane">
+            <h3>Wide Vane</h3>
+            <span class="button" data-selected='AUTO' onclick="la('WIDEVANE=AUTO')" title="auto">&#9851;</span>
+            <span class="button" data-selected='SWING' onclick="la('WIDEVANE=SWING')" title="swing">&#9887;</span>
+            <span class="button" data-selected='<<' onclick="la('WIDEVANE=<<')" title="<<"><<</span>
+            <span class="button" data-selected='<' onclick="la('WIDEVANE=<')" title="<"><</span>
+            <span class="button" data-selected='|' onclick="la('WIDEVANE=|')" title="|">|</span>
+            <span class="button" data-selected='>' onclick="la('WIDEVANE=>')" title=">">></span>
+            <span class="button" data-selected='>>' onclick="la('WIDEVANE=>>')" title=">>">>></span>
+            <span class="button" data-selected='<>' onclick="la('WIDEVANE=<>')" title="<>"><></span>
+        </div>
+    </div>
+    <div data-if-not="power">
+        <button id="false" onclick="la('POWER=ON')">Power On</span>
+    </div>
 </div>
 <div>
     <form action='/setup' method='get'>
@@ -48,9 +112,6 @@ const char html_menu_root[] PROGMEM = R"====(
 <script>
     if (_SHOW_LOGOUT_) {
         document.getElementById("logout").style.display = "";
-    }
-    if (_SHOW_CONTROL_) {
-        document.getElementById("control").style.display = "";
     }
 </script>
 )====";

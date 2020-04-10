@@ -470,8 +470,9 @@ boolean initWifi() {
 
 void sendWrappedHTML(String content) {
   String headerContent = FPSTR(html_common_header);
+  String commonScript = FPSTR(common_script);
   String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + content + footerContent;
+  String toSend = headerContent + commonScript + content + footerContent;
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
   server.send(200, F("text/html"), toSend);
@@ -526,7 +527,8 @@ void handleRoot() {
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
     //not show control button if hp not connected
     menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
-    sendWrappedHTML(menuRootPage);
+    String controlScript = FPSTR(root_control_script);
+    sendWrappedHTML(menuRootPage + controlScript);
   }
 }
 
@@ -658,132 +660,35 @@ void handleStatus() {
   sendWrappedHTML(statusPage);
 }
 
-
-
 void handleControl() {
   checkLogin();
   //not connected to hp, redirect to status page
   if (!hp.isConnected()) {
-    server.sendHeader("Location", "/status");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.send(302);
+    server.send(200, "application/json", F("{\"connected\": false}"));
     return;
   }
-  heatpumpSettings settings = hp.getSettings();
-  settings = change_states(settings);
-  String controlPage =  FPSTR(html_page_control);
-  String headerContent = FPSTR(html_common_header);
-  String footerContent = FPSTR(html_common_footer);
-  //write_log("Enter HVAC control");
-  headerContent.replace("_UNIT_NAME_", hostname);
-  footerContent.replace("_VERSION_", m2mqtt_version);
-  controlPage.replace("_UNIT_NAME_", hostname);
-  controlPage.replace("_RATE_", "60");
-  controlPage.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
-  controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
-  controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
-  controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
-  controlPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
-  controlPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
-  controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
+  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(15);
+  heatpumpSettings settings = update_states_if_needed(hp.getSettings());
+  StaticJsonDocument<bufferSizeInfo> responseJson;
 
-  if (strcmp(settings.power, "ON") == 0) {
-    controlPage.replace("_POWER_ON_", "selected");
-  }
-  else if (strcmp(settings.power, "OFF") == 0) {
-    controlPage.replace("_POWER_OFF_", "selected");
-  }
+  responseJson["connected"] = true;
+  responseJson["room_temperture"] = getTemperature(hp.getRoomTemperature(), useFahrenheit);
+  responseJson["temperture"] = getTemperature(hp.getTemperature(), useFahrenheit);
+  responseJson["scale"] = getTemperatureScale();
+  responseJson["support_heat_mode"] = supportHeatMode;
+  responseJson["min_temp"] = getTemperature(min_temp, useFahrenheit);
+  responseJson["max_temp"] = getTemperature(max_temp, useFahrenheit);
+  responseJson["temp_step"] = temp_step;
+  responseJson["power"] = settings.power == "ON";
+  responseJson["mode"] = settings.mode;
+  responseJson["fan"] = settings.fan;
+  responseJson["vane"] = settings.vane;
+  responseJson["wide_vane"] = settings.wideVane;
 
-  if (strcmp(settings.mode, "HEAT") == 0) {
-    controlPage.replace("_MODE_H_", "selected");
-  }
-  else if (strcmp(settings.mode, "DRY") == 0) {
-    controlPage.replace("_MODE_D_", "selected");
-  }
-  else if (strcmp(settings.mode, "COOL") == 0) {
-    controlPage.replace("_MODE_C_", "selected");
-  }
-  else if (strcmp(settings.mode, "FAN") == 0) {
-    controlPage.replace("_MODE_F_", "selected");
-  }
-  else if (strcmp(settings.mode, "AUTO") == 0) {
-    controlPage.replace("_MODE_A_", "selected");
-  }
+  String output;
+  serializeJson(responseJson, output);
 
-  if (strcmp(settings.fan, "AUTO") == 0) {
-    controlPage.replace("_FAN_A_", "selected");
-  }
-  else if (strcmp(settings.fan, "QUIET") == 0) {
-    controlPage.replace("_FAN_Q_", "selected");
-  }
-  else if (strcmp(settings.fan, "1") == 0) {
-    controlPage.replace("_FAN_1_", "selected");
-  }
-  else if (strcmp(settings.fan, "2") == 0) {
-    controlPage.replace("_FAN_2_", "selected");
-  }
-  else if (strcmp(settings.fan, "3") == 0) {
-    controlPage.replace("_FAN_3_", "selected");
-  }
-  else if (strcmp(settings.fan, "4") == 0) {
-    controlPage.replace("_FAN_4_", "selected");
-  }
-
-  controlPage.replace("_VANE_V_", settings.vane);
-  if (strcmp(settings.vane, "AUTO") == 0) {
-    controlPage.replace("_VANE_A_", "selected");
-  }
-  else if (strcmp(settings.vane, "1") == 0) {
-    controlPage.replace("_VANE_1_", "selected");
-  }
-  else if (strcmp(settings.vane, "2") == 0) {
-    controlPage.replace("_VANE_2_", "selected");
-  }
-  else if (strcmp(settings.vane, "3") == 0) {
-    controlPage.replace("_VANE_3_", "selected");
-  }
-  else if (strcmp(settings.vane, "4") == 0) {
-    controlPage.replace("_VANE_4_", "selected");
-  }
-  else if (strcmp(settings.vane, "5") == 0) {
-    controlPage.replace("_VANE_5_", "selected");
-  }
-  else if (strcmp(settings.vane, "SWING") == 0) {
-    controlPage.replace("_VANE_S_", "selected");
-  }
-
-  controlPage.replace("_WIDEVANE_V_", settings.wideVane);
-  if (strcmp(settings.wideVane, "<<") == 0) {
-    controlPage.replace("_WVANE_1_", "selected");
-  }
-  else if (strcmp(settings.wideVane, "<") == 0) {
-    controlPage.replace("_WVANE_2_", "selected");
-  }
-  else if (strcmp(settings.wideVane, "|") == 0) {
-    controlPage.replace("_WVANE_3_", "selected");
-  }
-  else if (strcmp(settings.wideVane, ">") == 0) {
-    controlPage.replace("_WVANE_4_", "selected");
-  }
-  else if (strcmp(settings.wideVane, ">>") == 0) {
-    controlPage.replace("_WVANE_5_", "selected");
-  }
-  else if (strcmp(settings.wideVane, "SWING") == 0) {
-    controlPage.replace("_WVANE_S_", "selected");
-  }
-
-  controlPage.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
-
-  // We need to send the page content in chunks to overcome
-  // a limitation on the maximum size we can send at one
-  // time (approx 6k).
-  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/html", headerContent);
-  server.sendContent(controlPage);
-  server.sendContent(footerContent);
-  // Signal the end of the content
-  server.sendContent("");
-  //delay(100);
+  server.send(200, "application/json", output);
 }
 
 //login page, also called for logout
@@ -975,7 +880,7 @@ void write_log(String log) {
   logFile.close();
 }
 
-heatpumpSettings change_states(heatpumpSettings settings) {
+heatpumpSettings update_states_if_needed(heatpumpSettings settings) {
   if (server.hasArg("CONNECT")) {
     hp.connect(&Serial);
   }
@@ -1124,7 +1029,7 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
       message += String(packet[idx], HEX) + " ";
     }
 
-    const size_t bufferSize = JSON_OBJECT_SIZE(1);
+    const size_t bufferSize = JSON_OBJECT_SIZE(10);
     StaticJsonDocument<bufferSize> root;
 
     root[packetDirection] = message;

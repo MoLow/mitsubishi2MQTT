@@ -86,7 +86,7 @@ const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
             padding: 0px;
         }
         
-        button, a.button {
+        button, .button {
             display: inline-block;
             text-align: center;
             border: 0;
@@ -101,7 +101,7 @@ const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
             cursor: pointer;
         }
         
-        button:hover, a.button:hover {
+        button:hover, .button:hover {
             background: #0e70a4;
         }
         
